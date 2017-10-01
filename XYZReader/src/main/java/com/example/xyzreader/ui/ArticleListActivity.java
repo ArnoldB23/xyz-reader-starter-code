@@ -9,17 +9,15 @@ import android.content.Loader;
 import android.database.Cursor;
 import android.os.Bundle;
 import android.support.v4.widget.SwipeRefreshLayout;
-import android.support.v7.app.ActionBarActivity;
+import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
-import android.support.v7.widget.StaggeredGridLayoutManager;
 import android.support.v7.widget.Toolbar;
 import android.text.Html;
-import android.text.format.DateUtils;
 import android.util.Log;
-import android.util.TypedValue;
-import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import com.example.xyzreader.R;
@@ -30,7 +28,10 @@ import com.example.xyzreader.data.UpdaterService;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
-import java.util.GregorianCalendar;
+
+import static android.support.v7.widget.RecyclerView.SCROLL_STATE_DRAGGING;
+import static android.support.v7.widget.RecyclerView.SCROLL_STATE_IDLE;
+import static android.support.v7.widget.RecyclerView.SCROLL_STATE_SETTLING;
 
 /**
  * An activity representing a list of Articles. This activity has different presentations for
@@ -38,33 +39,74 @@ import java.util.GregorianCalendar;
  * touched, lead to a {@link ArticleDetailActivity} representing item details. On tablets, the
  * activity presents a grid of items as cards.
  */
-public class ArticleListActivity extends ActionBarActivity implements
+public class ArticleListActivity extends AppCompatActivity implements
         LoaderManager.LoaderCallbacks<Cursor> {
 
     private static final String TAG = ArticleListActivity.class.toString();
     private Toolbar mToolbar;
+    private LinearLayout mRootLinearLayout;
     private SwipeRefreshLayout mSwipeRefreshLayout;
     private RecyclerView mRecyclerView;
 
     private SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.sss");
     // Use default locale format
-    private SimpleDateFormat outputFormat = new SimpleDateFormat();
-    // Most time functions can only handle 1902 - 2037
-    private GregorianCalendar START_OF_EPOCH = new GregorianCalendar(2,1,1);
+    private SimpleDateFormat outputFormat = new SimpleDateFormat("yyyy");
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+
+
         setContentView(R.layout.activity_article_list);
 
         mToolbar = (Toolbar) findViewById(R.id.toolbar);
-
-
-        final View toolbarContainerView = findViewById(R.id.toolbar_container);
-
-        mSwipeRefreshLayout = (SwipeRefreshLayout) findViewById(R.id.swipe_refresh_layout);
+        mRootLinearLayout = (LinearLayout) findViewById(R.id.root_linearlayout);
 
         mRecyclerView = (RecyclerView) findViewById(R.id.recycler_view);
+        mSwipeRefreshLayout = (SwipeRefreshLayout) findViewById(R.id.swipe_refresh_layout);
+        mSwipeRefreshLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
+            @Override
+            public void onRefresh() {
+                refresh();
+            }
+        });
+        mSwipeRefreshLayout.setColorSchemeResources(R.color.theme_primary);
+
+        //Only swipe refresh when starting from idle at the top of the list
+        mRecyclerView.addOnScrollListener(new RecyclerView.OnScrollListener() {
+            @Override
+            public void onScrollStateChanged(RecyclerView recyclerView, int newState) {
+                super.onScrollStateChanged(recyclerView, newState);
+
+                switch (newState){
+                    case SCROLL_STATE_DRAGGING:
+                        break;
+
+                    case SCROLL_STATE_SETTLING:
+                        break;
+
+                    case SCROLL_STATE_IDLE:
+                        if (((LinearLayoutManager)(recyclerView.getLayoutManager())).findFirstCompletelyVisibleItemPosition() == 0 ||
+                                recyclerView.getAdapter().getItemCount() == 0)
+                        {
+                            mSwipeRefreshLayout.setEnabled(true);
+                        }
+                        else{
+                            mSwipeRefreshLayout.setEnabled(false);
+                        }
+                        break;
+                }
+            }
+
+            @Override
+            public void onScrolled(RecyclerView recyclerView, int dx, int dy) {
+                super.onScrolled(recyclerView, dx, dy);
+            }
+        });
+        //mRecyclerView.addItemDecoration(new DividerItemDecoration(this, DividerItemDecoration.VERTICAL));
+
         getLoaderManager().initLoader(0, null, this);
 
         if (savedInstanceState == null) {
@@ -74,6 +116,13 @@ public class ArticleListActivity extends ActionBarActivity implements
 
     private void refresh() {
         startService(new Intent(this, UpdaterService.class));
+    }
+
+    @Override
+    protected  void onPause() {
+        super.onPause();
+
+        mSwipeRefreshLayout.setRefreshing(false);
     }
 
     @Override
@@ -115,10 +164,10 @@ public class ArticleListActivity extends ActionBarActivity implements
         Adapter adapter = new Adapter(cursor);
         adapter.setHasStableIds(true);
         mRecyclerView.setAdapter(adapter);
-        int columnCount = getResources().getInteger(R.integer.list_column_count);
-        StaggeredGridLayoutManager sglm =
-                new StaggeredGridLayoutManager(columnCount, StaggeredGridLayoutManager.VERTICAL);
-        mRecyclerView.setLayoutManager(sglm);
+        LinearLayoutManager lm = new LinearLayoutManager(this);
+        mRecyclerView.setLayoutManager(lm);
+
+        mSwipeRefreshLayout.setRefreshing(false);
     }
 
     @Override
@@ -141,13 +190,16 @@ public class ArticleListActivity extends ActionBarActivity implements
 
         @Override
         public ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
-            View view = getLayoutInflater().inflate(R.layout.list_item_article, parent, false);
+            View view = getLayoutInflater().inflate(R.layout.list_item_article_bleed, parent, false);
             final ViewHolder vh = new ViewHolder(view);
             view.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View view) {
-                    startActivity(new Intent(Intent.ACTION_VIEW,
-                            ItemsContract.Items.buildItemUri(getItemId(vh.getAdapterPosition()))));
+
+                    Intent i = new Intent(Intent.ACTION_VIEW,
+                            ItemsContract.Items.buildItemUri(getItemId(vh.getAdapterPosition())));
+
+                    startActivity(i);
                 }
             });
             return vh;
@@ -169,6 +221,7 @@ public class ArticleListActivity extends ActionBarActivity implements
             mCursor.moveToPosition(position);
             holder.titleView.setText(mCursor.getString(ArticleLoader.Query.TITLE));
             Date publishedDate = parsePublishedDate();
+            /*
             if (!publishedDate.before(START_OF_EPOCH.getTime())) {
 
                 holder.subtitleView.setText(Html.fromHtml(
@@ -184,8 +237,13 @@ public class ArticleListActivity extends ActionBarActivity implements
                         + "<br/>" + " by "
                         + mCursor.getString(ArticleLoader.Query.AUTHOR)));
             }
+            */
+            holder.subtitleView.setText(Html.fromHtml(
+                    mCursor.getString(ArticleLoader.Query.AUTHOR)
+                    + "  (" + outputFormat.format(publishedDate) + ")"));
+
             holder.thumbnailView.setImageUrl(
-                    mCursor.getString(ArticleLoader.Query.THUMB_URL),
+                    mCursor.getString(ArticleLoader.Query.PHOTO_URL),
                     ImageLoaderHelper.getInstance(ArticleListActivity.this).getImageLoader());
             holder.thumbnailView.setAspectRatio(mCursor.getFloat(ArticleLoader.Query.ASPECT_RATIO));
         }

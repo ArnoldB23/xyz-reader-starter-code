@@ -1,8 +1,9 @@
 <resources>
     <!-- list -->
     <dimen name="list_side_margin">4dp</dimen>
-    <dimen name="list_toolbar_side_margin">0dp</dimen>
+    <dimen name="list_toolbar_side_margin">16dp</dimen>
     <integer name="list_column_count">2</integer>
+    <dimen name="list_item_size">72dp</dimen>
 
     <!-- detail -->
     <bool name="detail_is_card">false</bool>

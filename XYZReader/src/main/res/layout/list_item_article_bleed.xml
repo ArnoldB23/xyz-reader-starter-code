@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+             android:layout_width="match_parent"
+             android:layout_height="wrap_content">
+
+    <com.example.xyzreader.ui.DynamicHeightNetworkImageView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@color/photo_placeholder"
+        android:scaleType="fitCenter"
+        android:id="@+id/thumbnail"
+        />
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@drawable/photo_background_protection" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:gravity="bottom"
+        android:paddingBottom="8dp"
+        android:paddingStart="16dp"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/article_title"
+            style="?android:attr/textAppearanceLarge"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingBottom="@dimen/detail_metabar_title_bottom_padding"
+            android:fontFamily="sans-serif-condensed"
+            android:textColor="#F5F5F5"
+            android:textStyle="bold"
+            android:textSize="@dimen/detail_title_text_size"
+            android:lineSpacingMultiplier="0.9" />
+
+        <TextView
+            android:id="@+id/article_subtitle"
+            style="?android:attr/textAppearanceSmall"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="#ECEFF1" />
+    </LinearLayout>
+
+
+</FrameLayout>
